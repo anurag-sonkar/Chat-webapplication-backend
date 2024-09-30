@@ -8,7 +8,7 @@ const asyncHandler = require('express-async-handler');
 
 
 const handleUserSignup = asyncHandler(async (req, res, next) => {
-    const { name, email, password, avatar ,gender} = req.body
+    const { name, email, password, avatar, gender } = req.body
 
     // check empty
     if (!name || !email || !password) {
@@ -17,39 +17,40 @@ const handleUserSignup = asyncHandler(async (req, res, next) => {
 
     try {
         // check already exists or not
-        const response = await User.findOne({ email })  
+        const response = await User.findOne({ email })
 
         if (!response) {
 
-            let uploadAvatar ;
-            if(req.file){
+            let uploadAvatar;
+            if (req.file) {
                 uploadAvatar = await uploadToCloudinary(req.file.buffer)
-            }else{
+            } else {
                 const placeholderAvatar = gender === 'male' ? `https://avatar.iran.liara.run/public/boy?username=${email}` : `https://avatar.iran.liara.run/public/girl?username=${email}`
 
                 uploadAvatar = {
-                    public_id : null ,
+                    public_id: null,
                     url: placeholderAvatar
                 }
-                
+
             }
 
             const user = await User.create({
-                name, email, password,gender, avatar: uploadAvatar})
+                name, email, password, gender, avatar: uploadAvatar
+            })
 
             if (user) {
                 // create token 
                 return res.status(201).json({
-                    response : {
+                    response: {
                         _id: user._id,
                         name: user.name,
                         email: user.email,
                         avatar: user.avatar,
-                        gender ,
+                        gender,
                         token: generateToken(user._id)
                     },
-                    message : "registered successfully"
-                    
+                    message: "registered successfully"
+
                 })
             } else {
                 return res.status(400).json({ message: "failed to signup Try again!" })
@@ -68,44 +69,45 @@ const handleUserSignup = asyncHandler(async (req, res, next) => {
 })
 
 
-const handleAvatarUpdate = asyncHandler(async(req,res,next)=>{
-    const {public_id} = req.body
+const handleAvatarUpdate = asyncHandler(async (req, res, next) => {
+    const { public_id } = req.body
     try {
-        if(public_id != null){
+        if (public_id != null) {
             const response = deleteCloudinaryImage(public_id)
             console.log(response)
         }
 
         let uploadAvatar;
-        if(req.file){
+        if (req.file) {
             uploadAvatar = await uploadToCloudinary(req.file.buffer)
             console.log("uploadAvatar", uploadAvatar)
 
         }
-        
-        const response = await User.findByIdAndUpdate(req.user._id , {
-            avatar:{
+
+        const response = await User.findByIdAndUpdate(req.user._id, {
+            avatar: {
                 public_id: uploadAvatar.public_id,
                 url: uploadAvatar.secure_url,
             }
 
-        } , {new:true})
+        }, { new: true })
 
-        if(response){
+        if (response) {
             return res.status(201).json({ response: response, message: "uploaded successfully" })
         }
 
-        
+
     } catch (error) {
         next(error)
 
-        
+
     }
 })
 
 
 const handleUserLogin = asyncHandler(async (req, res, next) => {
     const { email, password } = req.body
+    console.log(req.body)
 
     if (!email || !password) {
         return res.status(400).json({ message: "email and password required to login" });
@@ -123,11 +125,15 @@ const handleUserLogin = asyncHandler(async (req, res, next) => {
                 // return next(new Error("Password not Matched"))
             } else {
                 return res.status(200).json({
-                    _id: user._id,
-                    name: user.name,
-                    email: user.email,
-                    avatar: user.avatar,
-                    token: generateToken(user._id)
+                    message: "login successfully",
+                    response: {
+                        _id: user._id,
+                        name: user.name,
+                        gender: User.gender,
+                        email: user.email,
+                        avatar: user.avatar,
+                        token: generateToken(user._id)
+                    }
                 })
             }
         } else {
@@ -212,7 +218,7 @@ const handleAcceptFriendRequest = async (req, res, next) => {
     if (request.receiver._id.toString() !== req.user._id.toString())
         return next(
             new Error("You are not authorized to accept this request")
-    );
+        );
 
     if (!accept) {
         await request.deleteOne();
@@ -245,7 +251,7 @@ const handleAcceptFriendRequest = async (req, res, next) => {
 
 
 
-const handleGetMyNotifications = async(req,res,next)=>{
+const handleGetMyNotifications = async (req, res, next) => {
     const requests = await Request.find({ receiver: req.user._id }).populate(
         "sender",
         "name avatar"

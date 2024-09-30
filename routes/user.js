@@ -4,9 +4,9 @@ const { handleUserSignup, handleAvatarUpdate,handleUserLogin, handleSearchQuery,
 const checkAuthentication = require('../middleware/checkAuthentication');
 const { upload } = require('../middleware/upload');
 
+router.post("/login",upload.none(), handleUserLogin);
 router.post("/signup", upload.single('avatar'), handleUserSignup);
 router.put("/update-avatar", upload.single('avatar'), checkAuthentication,handleAvatarUpdate);
-router.post("/login", handleUserLogin);
 router.get('/', checkAuthentication, handleSearchQuery)
 router.get('/getMyProfile', checkAuthentication, handleGetMyProfile)
 router.put('/sendrequest', checkAuthentication, handleSendFriendRequest)
