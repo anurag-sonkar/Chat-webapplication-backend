@@ -159,7 +159,7 @@ const handleGetMyProfile = asyncHandler(async (req, res, next) => {
 
 const handleSearchQuery = asyncHandler(async (req, res) => {
     const search = req.query.search
-    console.log(search)
+    console.log("search", search)
     const user = req.user
 
     const searchKeyword = { $or: [{ name: { $regex: search, $options: "i" } }, { email: { $regex: search, $options: "i" } }] }
@@ -170,7 +170,7 @@ const handleSearchQuery = asyncHandler(async (req, res) => {
     })
 
     console.log("search res : ", response)
-    res.status(200).json(response)
+    res.status(200).json({"response":response , message : "search successfull"})
 
 
 })
