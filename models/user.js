@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+const mongoose = require("mongoose"); 
 const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema(
@@ -12,15 +12,30 @@ const userSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
-    password: { type: String, required: true },
-    profile: {
+    password: { type: String, required: true , select : false },
+    gender: {
       type: String,
-      default:
-        "https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg",
+      enum: ['male', 'female', 'other'],  
+      required: true, 
+    },
+    avatar: {
+      public_id: {
+        type: String,
+      },
+      url: {
+        type: String,
+        
+      }
     },
   },
   { timestamps: true }
 );
+
+// {
+//   type: String,
+//       default:
+//   "https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg",
+//     }
 
 
 // hash pasword , middleware which runs before save operation is performed
