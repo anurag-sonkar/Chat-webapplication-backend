@@ -1,5 +1,5 @@
 const generateToken = require('../config/generateToken');
-const { uploadToCloudinary } = require('../middleware/upload');
+const { uploadToCloudinary, deleteCloudinaryImage } = require('../middleware/upload');
 const Request = require('../models/request');
 const User = require('../models/user')
 const Chat = require('../models/chat')
@@ -65,6 +65,42 @@ const handleUserSignup = asyncHandler(async (req, res, next) => {
 
     }
 
+})
+
+
+const handleAvatarUpdate = asyncHandler(async(req,res,next)=>{
+    const {public_id} = req.body
+    try {
+        if(public_id != null){
+            const response = deleteCloudinaryImage(public_id)
+            console.log(response)
+        }
+
+        let uploadAvatar;
+        if(req.file){
+            uploadAvatar = await uploadToCloudinary(req.file.buffer)
+            console.log("uploadAvatar", uploadAvatar)
+
+        }
+        
+        const response = await User.findByIdAndUpdate(req.user._id , {
+            avatar:{
+                public_id: uploadAvatar.public_id,
+                url: uploadAvatar.secure_url,
+            }
+
+        } , {new:true})
+
+        if(response){
+            return res.status(201).json({ response: response, message: "uploaded successfully" })
+        }
+
+        
+    } catch (error) {
+        next(error)
+
+        
+    }
 })
 
 
@@ -231,4 +267,4 @@ const handleGetMyNotifications = async(req,res,next)=>{
     });
 }
 
-module.exports = { handleUserSignup, handleUserLogin, handleSearchQuery, handleGetMyProfile, handleSendFriendRequest, handleAcceptFriendRequest, handleGetMyNotifications };
+module.exports = { handleUserSignup, handleAvatarUpdate, handleUserLogin, handleSearchQuery, handleGetMyProfile, handleSendFriendRequest, handleAcceptFriendRequest, handleGetMyNotifications };

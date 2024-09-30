@@ -78,5 +78,15 @@ const uploadToCloudinary = (buffer) => {
   });
 };
 
+const deleteCloudinaryImage = async (publicId) => {
+  try {
+    const result = await cloudinary.uploader.destroy(publicId);
+    return result;  // You can return the result or handle it as needed
+  } catch (error) {
+    console.error("Error deleting image from Cloudinary:", error);
+    throw error;  // Rethrow the error to handle it in the calling function
+  }
+};
 
-module.exports = {upload ,  uploadToCloudinary }
+
+module.exports = { upload, uploadToCloudinary, deleteCloudinaryImage }
