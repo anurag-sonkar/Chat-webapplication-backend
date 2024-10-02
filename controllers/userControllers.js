@@ -5,7 +5,7 @@ const User = require('../models/user')
 const Chat = require('../models/chat')
 const bcrypt = require("bcryptjs");
 const asyncHandler = require('express-async-handler');
-const { getReceiverSocketId ,io} = require('../socket/socket');
+const { getReceiverSocketId, io } = require('../socket/socket');
 
 
 const handleUserSignup = asyncHandler(async (req, res, next) => {
@@ -171,7 +171,7 @@ const handleSearchQuery = asyncHandler(async (req, res) => {
     })
 
     console.log("search res : ", response)
-    res.status(200).json({"response":response , message : "search successfull"})
+    res.status(200).json({ "response": response, message: "search successfull" })
 
 
 })
@@ -206,7 +206,7 @@ const handleSendFriendRequest = async (req, res, next) => {
     if (receiverSocketId) {
         io.to(receiverSocketId).emit('notification', {
             message: `new friend request from ${senderRequest.sender.name}`,
-            response : {
+            response: {
                 _id: senderRequest._id,
                 sender: {
                     _id: senderRequest.sender._id,
@@ -225,12 +225,13 @@ const handleSendFriendRequest = async (req, res, next) => {
 
 const handleAcceptFriendRequest = async (req, res, next) => {
     const { requestId, accept } = req.body;
-    console.log(requestId)
+    // console.log(requestId)
     if (!requestId) {
         next(new Error('requestId required to accept friend request'))
     }
 
     const request = await Request.findById(requestId).populate('sender', 'name').populate('receiver', 'name')
+    // console.log(request , "requuest")
 
     if (!request) return next(new Error('request not found'))
 
@@ -258,7 +259,24 @@ const handleAcceptFriendRequest = async (req, res, next) => {
         request.deleteOne(),
     ]);
 
-    // emitEvent(req, REFETCH_CHATS, members);
+    // Emit event to both sender and receiver
+    const senderSocketId = getReceiverSocketId(request.sender._id.toString());
+    const receiverSocketId = getReceiverSocketId(req.user._id.toString());
+    // console.log(senderSocketId, receiverSocketId)
+
+    if (senderSocketId) {
+        io.to(senderSocketId).emit('refetch-chat', {
+            message: "Friend request accepted",
+            chatId: members,
+        });
+    }
+
+    if (receiverSocketId) {
+        io.to(receiverSocketId).emit('refetch-chat', {
+            message: "Friend request accepted",
+            chatId: members,
+        });
+    }
 
     return res.status(200).json({
         success: true,
@@ -288,7 +306,7 @@ const handleGetMyNotifications = async (req, res, next) => {
 
     return res.status(200).json({
         message: "notifications fetched",
-        response :allRequests,
+        response: allRequests,
     });
 }
 
