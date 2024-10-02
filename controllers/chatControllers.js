@@ -1,10 +1,10 @@
 const Chat = require('../models/chat')
 const User = require('../models/user')
 const asyncHandler = require('express-async-handler');
-const { uploadFilesToCloudinary } = require('../utils/features');
 const Message = require('../models/message');
 const { response } = require('express');
-const { deleteImage } = require('../middleware/upload');
+const { deleteImage, uploadAttachmentsToCloudinary } = require('../middleware/upload');
+const { getReceiverSocketId , io } = require('../socket/socket');
 
 // 1.group chat create
 const handleCreateGroupChat = asyncHandler(async (req, res, next) => {
@@ -205,45 +205,108 @@ const handleLeaveFromGroup = async (req, res, next) => {
 
 
 //7.
-const handleSendAttachments = async (req, res, next) => {
-  const { chatId } = req.body;
-  const files = req.files || [];
+// const handleSendAttachments = async (req, res, next) => {
+//   const { chatId } = req.body;
+//   const files = req.files || [];
 
-  if (files.length === 0)
-    return next(new Error("Please Upload Attachments"));
+//   if (files.length === 0)
+//     return next(new Error("Please Upload Attachments"));
 
-  if (files.length > 5)
-    return next(new Error("Files Can't be more than 5"));
+//   if (files.length > 5)
+//     return next(new Error("Files Can't be more than 5"));
 
-  const chat = await Chat.findById(chatId);
-  if (!chat) return next(new Error("Chat not found"));
+//   const chat = await Chat.findById(chatId);
+//   if (!chat) return next(new Error("Chat not found"));
 
-  // Upload files to cloudinary
-  const attachments = await uploadFilesToCloudinary(files);
-  console.log(attachments)
+//   // Upload files to cloudinary
+//   const attachments = await uploadFilesToCloudinary(files);
+//   console.log(attachments)
 
-  // Prepare message for DB and real-time events
-  const messageForDB = {
-    sender: req.user._id,
-    content: "",
-    chat: chatId,
-    attachments,
-  };
+//   // Prepare message for DB and real-time events
+//   const messageForDB = {
+//     sender: req.user._id,
+//     content: "",
+//     chat: chatId,
+//     attachments,
+//   };
 
-  const message = await Message.create(messageForDB);
+//   const message = await Message.create(messageForDB);
 
-  const messageForRealTime = {
-    ...messageForDB,
-    sender: { _id: req.user._id, name: req.user.name },
-  };
+//   const messageForRealTime = {
+//     ...messageForDB,
+//     sender: { _id: req.user._id, name: req.user.name },
+//   };
 
-  // Emit real-time events
-  // emitEvent(req, NEW_MESSAGE, chat.members, { message: messageForRealTime, chatId });
-  // emitEvent(req, NEW_MESSAGE_ALERT, chat.members, { chatId });
+//   // Emit real-time events
+//   // emitEvent(req, NEW_MESSAGE, chat.members, { message: messageForRealTime, chatId });
+//   // emitEvent(req, NEW_MESSAGE_ALERT, chat.members, { chatId });
 
 
-  return res.status(200).json({ success: true, message });
-}
+//   return res.status(200).json({ success: true, message });
+// }
+
+const handleSendMessage = async (req, res, next) => {
+  try {
+    const { content, chatId } = req.body;
+    const files = req.files || [];
+    console.log(req.body)
+
+    // Check if more than 5 files are uploaded
+    if (files.length > 5) {
+      return next(new Error("Files can't be more than 5"));
+    }
+
+    // Find the chat
+    const chat = await Chat.findById(chatId);
+    if (!chat) return next(new Error("Chat not found"));
+
+    // Upload attachments to Cloudinary if there are any
+    let attachments = [];
+    if (files.length > 0) {
+      attachments = await uploadAttachmentsToCloudinary(files);
+      console.log("Uploaded Attachments:", attachments); // Attachments will have public_id and URL
+    }
+
+    // Prepare message object for saving in DB
+    const messageForDB = {
+      sender: req.user._id,
+      content: content,
+      chat: chatId,
+      attachments, // Add the uploaded attachments to the message
+    };
+
+    // Save the message to the database
+    const message = await Message.create(messageForDB);
+
+    // Populate sender and chat details after creation
+    const populatedMessage = await Message.findById(message._id)
+      .populate('sender', 'name avatar')
+      .populate('chat')
+      .exec();
+
+    // Emit the new message to all members of the chat
+    const members = chat.members;
+    members.forEach(memberId => {
+      if (memberId.toString() !== req.user._id.toString()) {
+        const memberSocketId = getReceiverSocketId(memberId.toString()); // Retrieve socket ID from your mapping
+        if (memberSocketId) {
+          io.to(memberSocketId).emit('new-message', populatedMessage);
+        }
+      }
+    });
+
+    
+    // Respond with the newly created message
+    return res.status(200).json({
+      message: populatedMessage,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+
+
 
 
 // 8.
@@ -368,7 +431,7 @@ const handleGetMessages = async (req, res, next) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(resultPerPage)
-      .populate("sender", "name")
+      .populate("sender" ,'name avatar')
       .lean(),
     Message.countDocuments({ chat: chatId }),
   ]);
@@ -376,7 +439,6 @@ const handleGetMessages = async (req, res, next) => {
   const totalPages = Math.ceil(totalMessagesCount / resultPerPage) || 0;
 
   return res.status(200).json({
-    success: true,
     messages: messages.reverse(),
     totalPages,
   });
@@ -385,5 +447,5 @@ const handleGetMessages = async (req, res, next) => {
 
 
 
-module.exports = { handleCreateGroupChat, handleRenameGroup, handleGetMyChats, handleGetMyGroups, handleAddGroupMembers, handleRemoveGroupMember, handleLeaveFromGroup, handleSendAttachments, handleGetChatDetails, handleDeleteChat, handleGetMessages }
+module.exports = { handleCreateGroupChat, handleRenameGroup, handleGetMyChats, handleGetMyGroups, handleAddGroupMembers, handleRemoveGroupMember, handleLeaveFromGroup, handleGetChatDetails, handleDeleteChat, handleGetMessages, handleSendMessage }
 

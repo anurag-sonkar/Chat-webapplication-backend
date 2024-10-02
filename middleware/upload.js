@@ -88,5 +88,49 @@ const deleteCloudinaryImage = async (publicId) => {
   }
 };
 
+// New function for attachments upload
+// const uploadAttachmentsToCloudinary = (files) => {
+//   if (files.length > 5) {
+//     throw new Error("Files can't be more than 5");
+//   }
 
-module.exports = { upload, uploadToCloudinary, deleteCloudinaryImage }
+//   // Create promises to upload each file
+//   const uploadPromises = files.map(file => {
+//     return new Promise((resolve, reject) => {
+//       const fileType = file.mimetype.split('/')[0]; // Get file type (image, video, etc.)
+//       const folder = `attachments/${fileType}`; // Folder based on file type (e.g., attachments/image, attachments/video)
+
+//       const uploadStream = cloudinary.uploader.upload_stream(
+//         { folder: folder },  // Uploading to specific folder
+//         (error, result) => {
+//           if (result) {
+//             resolve(result);
+//           } else {
+//             reject(error);
+//           }
+//         }
+//       );
+//       streamifier.createReadStream(file.buffer).pipe(uploadStream);
+//     });
+//   });
+
+//   // Return a promise to resolve all uploads
+//   return Promise.all(uploadPromises);
+// };
+
+const uploadAttachmentsToCloudinary = async (files) => {
+  const uploadPromises = files.map(file => {
+    const fileType = file.mimetype.split('/')[0]; // Get the file type from mimetype (e.g., 'image', 'video', 'application')
+    
+    let resourceType = 'raw'; // Default for docs like PDF
+    if (fileType === 'image') resourceType = 'image';
+    if (fileType === 'video' || fileType === 'audio') resourceType = 'video';
+    
+    return uploadToCloudinary(file.buffer, resourceType); // Upload based on file type
+  });
+
+  return Promise.all(uploadPromises); // Wait for all uploads to complete
+};
+
+
+module.exports = { upload, uploadToCloudinary, deleteCloudinaryImage, uploadAttachmentsToCloudinary }
