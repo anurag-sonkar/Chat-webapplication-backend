@@ -53,6 +53,7 @@ const handleGetMyChats = async (req, res, next) => {
       .populate("groupAdmin")
       .populate("members"); // Populate members to access full user objects
 
+    
     // Transform the chats to remove the current user's ID from members
     const transformedChats = chats.map(chat => {
       return {

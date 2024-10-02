@@ -5,6 +5,7 @@ const User = require('../models/user')
 const Chat = require('../models/chat')
 const bcrypt = require("bcryptjs");
 const asyncHandler = require('express-async-handler');
+const { getReceiverSocketId ,io} = require('../socket/socket');
 
 
 const handleUserSignup = asyncHandler(async (req, res, next) => {
@@ -189,7 +190,7 @@ const handleSendFriendRequest = async (req, res, next) => {
     if (request) return res.json({ message: "request already send" })
 
 
-    await Request.create({
+    const response = await Request.create({
         sender: req.user._id,
         receiver: userId,
         status: "pending"
@@ -197,6 +198,24 @@ const handleSendFriendRequest = async (req, res, next) => {
 
 
     // emit event send - new Request
+    // Socket io for real time message show *
+    const senderRequest = await Request.findById(response?._id).populate('sender');
+    console.log("senderRequest", senderRequest)
+
+    const receiverSocketId = getReceiverSocketId(userId)
+    if (receiverSocketId) {
+        io.to(receiverSocketId).emit('notification', {
+            message: `new friend request from ${senderRequest.sender.name}`,
+            response : {
+                _id: senderRequest._id,
+                sender: {
+                    _id: senderRequest.sender._id,
+                    name: senderRequest.sender.name,
+                    avatar: senderRequest.sender.avatar.url,
+                },
+            }
+        })
+    }
 
     return res.status(200).json({ message: "friend request send" })
 }
@@ -206,7 +225,7 @@ const handleSendFriendRequest = async (req, res, next) => {
 
 const handleAcceptFriendRequest = async (req, res, next) => {
     const { requestId, accept } = req.body;
-
+    console.log(requestId)
     if (!requestId) {
         next(new Error('requestId required to accept friend request'))
     }
@@ -256,7 +275,7 @@ const handleGetMyNotifications = async (req, res, next) => {
         "sender",
         "name avatar"
     );
-    console.log(requests)
+    // console.log(requests)
 
     const allRequests = requests.map(({ _id, sender }) => ({
         _id,
@@ -268,8 +287,8 @@ const handleGetMyNotifications = async (req, res, next) => {
     }));
 
     return res.status(200).json({
-        success: true,
-        allRequests,
+        message: "notifications fetched",
+        response :allRequests,
     });
 }
 
