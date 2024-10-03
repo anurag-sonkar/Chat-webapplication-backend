@@ -23,5 +23,5 @@ app.use('/chat' , checkAuthentication ,chatsRoutes)
 app.use(errorMiddleware)
 
 server.listen(PORT, () =>
-  console.log(`Server running at : http://localhost:${PORT}`.blue.bold)
+  console.log(`Server running at : http://192.168.43.195:${PORT}`.blue.bold)
 );

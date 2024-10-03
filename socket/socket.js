@@ -29,6 +29,21 @@ io.on('connection' , (socket)=>{
 
     io.emit('onlineUsers', Array.from(userSocketMap.keys()))
 
+    // Listen for typing events
+    socket.on("typing", (data) => {
+        // const receiverId = getReceiverSocketId(data.userId)
+        // console.log(data.userId)
+        socket.broadcast.emit("displayTyping", data.userId);
+        // io.to(receiverId).emit("displayTyping", data);
+    });
+    
+    // Listen for stop typing events
+    socket.on("stopTyping", (data) => {
+        // const receiverId = getReceiverSocketId(data.userId)
+        socket.broadcast.emit("removeTyping", data.userId);
+        // io.to(receiverId).emit("removeTyping", data);
+    });
+
     socket.on('disconnect' , ()=>{
         // Remove the disconnected user from the userSocketMap
         userSocketMap.delete(userId)
