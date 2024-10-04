@@ -3,12 +3,14 @@ const User = require('../models/user')
 const asyncHandler = require('express-async-handler');
 const Message = require('../models/message');
 const { response } = require('express');
-const { deleteImage, uploadAttachmentsToCloudinary } = require('../middleware/upload');
+const { deleteImage, uploadAttachmentsToCloudinary, uploadToCloudinary } = require('../middleware/upload');
 const { getReceiverSocketId , io } = require('../socket/socket');
 
 // 1.group chat create
 const handleCreateGroupChat = asyncHandler(async (req, res, next) => {
-  const { members, name } = req.body
+  const { members, name , avatar} = req.body
+  console.log(req.body)
+  console.log(req.file)
   if (!members || !name) {
     return res.status(400).send({ message: "Please Add Atleast 2 Group Members and Set Group Name" });
   }
@@ -24,15 +26,26 @@ const handleCreateGroupChat = asyncHandler(async (req, res, next) => {
   // users.push(req.user);
 
   try {
+
+    let uploadAvatar;
+    if (req.file) {
+      uploadAvatar = await uploadToCloudinary(req.file.buffer)
+    } else {
+      // const placeholderAvatar = gender === 'male' ? `https://avatar.iran.liara.run/public/boy?username=${email}` : `https://avatar.iran.liara.run/public/girl?username=${email}`
+
+      uploadAvatar = {
+        public_id: null,
+        url: "https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg"
+      }
+
+    }
+
     const groupChat = await Chat.create({
       name: req.body.name,
       members: [...members, req.user._id],
       isGroupChat: true,
       groupAdmin: req.user._id,
-      avatar: req.avatar || {  // If no avatar then set default avatar - change in future
-        public_id: null,
-        url: "https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg"
-      }
+      avatar: uploadAvatar
     });
 
     // const fullGroupChat = await Chat.findOne({ _id: groupChat._id })
@@ -244,6 +257,7 @@ const handleLeaveFromGroup = async (req, res, next) => {
 
 //   return res.status(200).json({ success: true, message });
 // }
+
 
 const handleSendMessage = async (req, res, next) => {
   try {

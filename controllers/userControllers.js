@@ -10,7 +10,8 @@ const { getReceiverSocketId, io } = require('../socket/socket');
 
 const handleUserSignup = asyncHandler(async (req, res, next) => {
     const { name, email, password, avatar, gender } = req.body
-
+    // console.log(req.body)
+    // console.log(req.file)
     // check empty
     if (!name || !email || !password) {
         return res.status(400).json({ message: "name/email/password reuiqred to signup" });

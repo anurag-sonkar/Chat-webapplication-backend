@@ -5,7 +5,7 @@ const { upload } = require('../middleware/upload');
 // const { avatarUpload, attachmentsMulter } = require('../middleware/upload');
 
 // router.post('/group', avatarUpload, handleCreateGroupChat)
-router.post('/group', handleCreateGroupChat)
+router.post('/group', upload.single('avatar') ,handleCreateGroupChat)
 router.get('/mychats', handleGetMyChats)
 router.get('/mygroups', handleGetMyGroups)
 router.put('/addgroupmember', handleAddGroupMembers)
