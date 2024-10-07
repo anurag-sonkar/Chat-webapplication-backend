@@ -44,15 +44,14 @@ io.on('connection' , (socket)=>{
         // io.to(receiverId).emit("removeTyping", data);
     });
 
-    socket.on('disconnect' , ()=>{
-        // Remove the disconnected user from the userSocketMap
-        userSocketMap.delete(userId)
+    socket.on('disconnect', () => {
+        userSocketMap.delete(userId);
         console.log(userSocketMap);
 
         // Emit the updated online users list after disconnection
-        io.emit('onlineUsers', Object.keys(userSocketMap));
+        io.emit('onlineUsers', Array.from(userSocketMap.keys())); // Corrected from Object.keys to Array.from
+    });
 
-    })
 })
 
 

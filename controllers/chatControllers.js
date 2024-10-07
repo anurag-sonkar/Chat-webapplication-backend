@@ -4,11 +4,11 @@ const asyncHandler = require('express-async-handler');
 const Message = require('../models/message');
 const { response } = require('express');
 const { deleteImage, uploadAttachmentsToCloudinary, uploadToCloudinary } = require('../middleware/upload');
-const { getReceiverSocketId , io } = require('../socket/socket');
+const { getReceiverSocketId, io } = require('../socket/socket');
 
 // 1.group chat create
 const handleCreateGroupChat = asyncHandler(async (req, res, next) => {
-  const { members, name , avatar} = req.body
+  const { members, name, avatar } = req.body
   console.log(req.body)
   console.log(req.file)
   if (!members || !name) {
@@ -50,6 +50,10 @@ const handleCreateGroupChat = asyncHandler(async (req, res, next) => {
 
     // const fullGroupChat = await Chat.findOne({ _id: groupChat._id })
 
+    members.forEach((memberId) => {
+      const socketId = getReceiverSocketId(memberId)
+      io.to(socketId).emit('group-chat', { message: `You Added to group ${name}` });
+    });
 
     res.status(200).json(groupChat);
   } catch (error) {
@@ -66,7 +70,7 @@ const handleGetMyChats = async (req, res, next) => {
       .populate("groupAdmin")
       .populate("members"); // Populate members to access full user objects
 
-    
+
     // Transform the chats to remove the current user's ID from members
     const transformedChats = chats.map(chat => {
       return {
@@ -82,7 +86,7 @@ const handleGetMyChats = async (req, res, next) => {
   }
 };
 
-//3. getMygroups
+//3. getMygroups - whose admin is auth user 
 const handleGetMyGroups = async (req, res) => {
   const chats = await Chat.find({
     isGroupChat: true,
@@ -218,47 +222,6 @@ const handleLeaveFromGroup = async (req, res, next) => {
 
 
 //7.
-// const handleSendAttachments = async (req, res, next) => {
-//   const { chatId } = req.body;
-//   const files = req.files || [];
-
-//   if (files.length === 0)
-//     return next(new Error("Please Upload Attachments"));
-
-//   if (files.length > 5)
-//     return next(new Error("Files Can't be more than 5"));
-
-//   const chat = await Chat.findById(chatId);
-//   if (!chat) return next(new Error("Chat not found"));
-
-//   // Upload files to cloudinary
-//   const attachments = await uploadFilesToCloudinary(files);
-//   console.log(attachments)
-
-//   // Prepare message for DB and real-time events
-//   const messageForDB = {
-//     sender: req.user._id,
-//     content: "",
-//     chat: chatId,
-//     attachments,
-//   };
-
-//   const message = await Message.create(messageForDB);
-
-//   const messageForRealTime = {
-//     ...messageForDB,
-//     sender: { _id: req.user._id, name: req.user.name },
-//   };
-
-//   // Emit real-time events
-//   // emitEvent(req, NEW_MESSAGE, chat.members, { message: messageForRealTime, chatId });
-//   // emitEvent(req, NEW_MESSAGE_ALERT, chat.members, { chatId });
-
-
-//   return res.status(200).json({ success: true, message });
-// }
-
-
 const handleSendMessage = async (req, res, next) => {
   try {
     const { content, chatId } = req.body;
@@ -309,7 +272,7 @@ const handleSendMessage = async (req, res, next) => {
       }
     });
 
-    
+
     // Respond with the newly created message
     return res.status(200).json({
       message: populatedMessage,
@@ -350,14 +313,16 @@ const handleGetChatDetails = async (req, res, next) => {
 
 //9.
 const handleRenameGroup = asyncHandler(async (req, res, next) => {
+  console.log(req.body)
   const { chatId, chatName } = req.body;
 
   // must be groupchat and admin is allowed
   const chat = await Chat.findById(chatId)
+  console.log(chat)
   if (!chat.isGroupChat) return next(new Error('group chat name can only be changed'))
   if (chat.groupAdmin.toString() !== req.user._id.toString()) return next(new Error('only admin can changed the group name'))
 
-  const updatedChat = await Chat.findByIdAndUpdate(
+  let updatedChat = await Chat.findByIdAndUpdate(
     chatId,
     {
       name: chatName,
@@ -365,13 +330,18 @@ const handleRenameGroup = asyncHandler(async (req, res, next) => {
     {
       new: true,
     }
-  )
+  ).populate(["groupAdmin", "members"] )
 
   if (!updatedChat) {
     next(new Error("Chat Not Found"))
 
   } else {
-    res.json(updatedChat);
+    const response = {
+      ...updatedChat._doc,
+      members: updatedChat.members.filter((ele)=>ele._id.toString() !== req.user._id.toString())
+    }
+    res.json(response);
+    console.log(response)
   }
 });
 
@@ -445,7 +415,7 @@ const handleGetMessages = async (req, res, next) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(resultPerPage)
-      .populate("sender" ,'name avatar')
+      .populate("sender", 'name avatar')
       .lean(),
     Message.countDocuments({ chat: chatId }),
   ]);
