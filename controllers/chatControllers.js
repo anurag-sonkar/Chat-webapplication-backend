@@ -124,10 +124,16 @@ const handleAddGroupMembers = async (req, res, next) => {
     // now adding add members - which is not already in chat.members
     const updatedMembers = await Chat.findByIdAndUpdate({ _id: chatId }, {
       $addToSet: { members: { $each: members } }
-    }, { new: true }) // Add only unique members
-    // console.log(updatedMembers)
+    }, { new: true }).populate(["groupAdmin", "members"]) // Add only unique members
+    console.log("updatedMembers", updatedMembers)
 
-    return res.status(201).json({ message: "members added successfully" })
+    // return res.status(201).json({ message: "members added successfully" })
+    return res.status(200).json({
+      updatedMembers: {
+        ...updatedMembers._doc,
+        members: updatedMembers.members.filter((ele) => ele._id.toString() !== req.user._id.toString())
+      }, message: "members added successfully"
+    })
   } catch (error) {
     next(error)
 
@@ -144,7 +150,7 @@ const handleRemoveGroupMember = async (req, res, next) => {
   if (!userId || !chatId) return next(new Error("userid ,chatid required to remove user from group"))
 
   // find group
-  const group = await Chat.findById(chatId)
+  let group = await Chat.findById(chatId)
   if (!group) return res.status(400).json({ message: "group not found" })
 
   // check group length , which must not be less than 3 
@@ -173,9 +179,16 @@ const handleRemoveGroupMember = async (req, res, next) => {
       chatId,
       { $pull: { members: userId } }, // Pull the member from the array
       { new: true } // Return the updated document
-    );
+    ).populate(["groupAdmin", "members"])
 
-    return res.status(200).json({ message: `${userToRemove.name} removed from group` })
+    console.log(updatedChat)
+
+    /*...updatedChat._doc,
+      members: updatedChat.members.filter((ele)=>ele._id.toString() !== req.user._id.toString()) */
+    return res.status(200).json({ updatedChat : {
+      ...updatedChat._doc,
+      members: updatedChat.members.filter((ele) => ele._id.toString() !== req.user._id.toString())
+    } , message: `${userToRemove.name} removed from ${group.name} group` })
 
     // console.log(updatedChat)
   } catch (error) {
@@ -224,32 +237,35 @@ const handleLeaveFromGroup = async (req, res, next) => {
 //7.
 const handleSendMessage = async (req, res, next) => {
   try {
-    const { content, chatId } = req.body;
-    const files = req.files || [];
+    const { content, chatId ,attachments} = req.body;
+    // const files = req.files || [];
     console.log(req.body)
 
     // Check if more than 5 files are uploaded
-    if (files.length > 5) {
-      return next(new Error("Files can't be more than 5"));
-    }
+    // if (files.length > 5) {
+    //   return next(new Error("Files can't be more than 5"));
+    // }
 
     // Find the chat
     const chat = await Chat.findById(chatId);
     if (!chat) return next(new Error("Chat not found"));
 
     // Upload attachments to Cloudinary if there are any
-    let attachments = [];
-    if (files.length > 0) {
-      attachments = await uploadAttachmentsToCloudinary(files);
-      console.log("Uploaded Attachments:", attachments); // Attachments will have public_id and URL
-    }
+    // let attachments = [];
+    // if (files.length > 0) {
+    //   attachments = await uploadAttachmentsToCloudinary(files);
+    //   console.log("Uploaded Attachments:", attachments); // Attachments will have public_id and URL
+    // }
+
+    //   Upload files here
+    // const attachments = await uploadAttachmentsToCloudinary(files);
 
     // Prepare message object for saving in DB
     const messageForDB = {
       sender: req.user._id,
       content: content,
       chat: chatId,
-      attachments, // Add the uploaded attachments to the message
+      attachments: attachments || null, // Add the uploaded attachments to the message
     };
 
     // Save the message to the database
@@ -348,21 +364,21 @@ const handleRenameGroup = asyncHandler(async (req, res, next) => {
 //10. delete chats
 const handleDeleteChat = async (req, res, next) => {
   const chatId = req.params.id;
-
+  
   const chat = await Chat.findById(chatId);
 
   if (!chat) return next(new Error("Chat not found"));
 
   const members = chat.members;
 
-  if (chat.isGroupChat && chat.groupAdmin.toString() !== req.user._id.toString())
+  if (chat.isGroupChat && chat.groupAdmin._id.toString() !== req.user._id.toString())
     return next(
-      new Error("You are not allowed to delete the group")
+      new Error("You are not allowed to delete the group") // when gp chat , only admin can delete
     );
 
   if (!chat.isGroupChat && !chat.members.includes(req.user._id.toString())) {
     return next(
-      new Error("You are not allowed to delete the chat")
+      new Error("You are not allowed to delete the chat") // when one to one chat 
     );
   }
 

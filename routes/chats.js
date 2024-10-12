@@ -2,6 +2,7 @@ const express = require('express')
 const router = express.Router()
 const { handleCreateGroupChat, handleGetMyChats, handleGetMyGroups, handleAddGroupMembers, handleRemoveGroupMember, handleLeaveFromGroup, handleSendMessage, handleGetChatDetails, handleRenameGroup, handleDeleteChat, handleGetMessages ,} = require('../controllers/chatControllers');
 const { upload } = require('../middleware/upload');
+const { attachmentsMulter } = require('../middleware/multer');
 // const { avatarUpload, attachmentsMulter } = require('../middleware/upload');
 
 // router.post('/group', avatarUpload, handleCreateGroupChat)
@@ -15,7 +16,7 @@ router.put('/leave/:id', handleLeaveFromGroup)
 // Send Attachments - messages
 router.post(
     "/message",
-    upload.array('attachments', 5),
+    // upload.array('attachments', 5),
     handleSendMessage
 );
 
