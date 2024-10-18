@@ -25,7 +25,7 @@ io.on('connection' , (socket)=>{
         // userSocketMap[userId] = socket.id
         userSocketMap.set(userId , socket.id)
 
-        console.log(userSocketMap)
+        // console.log(userSocketMap)
     }
 
     io.emit('onlineUsers', Array.from(userSocketMap.keys()))
@@ -33,7 +33,7 @@ io.on('connection' , (socket)=>{
     // Listen for typing events
     socket.on("typing", (data) => {
         // const receiverId = getReceiverSocketId(data.userId)
-        // console.log(data.userId)
+        // // console.log(data.userId)
         socket.broadcast.emit("displayTyping", data.userId);
         // io.to(receiverId).emit("displayTyping", data);
     });
@@ -47,7 +47,7 @@ io.on('connection' , (socket)=>{
 
     socket.on('disconnect', () => {
         userSocketMap.delete(userId);
-        console.log(userSocketMap);
+        // console.log(userSocketMap);
 
         // Emit the updated online users list after disconnection
         io.emit('onlineUsers', Array.from(userSocketMap.keys())); // Corrected from Object.keys to Array.from

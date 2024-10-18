@@ -4,7 +4,7 @@ const {app,server ,io} = require('./socket/socket')
 const dotenv = require("dotenv");
 dotenv.config();
 const cors = require("cors");
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 8000;
 const db = require("./config/db");
 const colors = require('colors')
 const userRoutes = require('./routes/user')
@@ -12,7 +12,10 @@ const chatsRoutes = require('./routes/chats');
 const {errorMiddleware} = require("./middleware/error");
 const checkAuthentication = require("./middleware/checkAuthentication");
 
-app.use(cors());
+app.use(cors({
+  origin: "*", // frontend's origin - allowing all    
+  methods: ['GET', 'POST', 'PUT', 'DELETE'] //options
+}));
 app.use(express.json())
 app.use(express.urlencoded({extended : false}))
 
