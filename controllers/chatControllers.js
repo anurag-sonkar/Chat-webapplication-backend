@@ -9,8 +9,6 @@ const { getReceiverSocketId, io } = require('../socket/socket');
 // 1.group chat create
 const handleCreateGroupChat = asyncHandler(async (req, res, next) => {
   const { members, name, avatar } = req.body
-  console.log(req.body)
-  console.log(req.file)
   if (!members || !name) {
     return res.status(400).send({ message: "Please Add Atleast 2 Group Members and Set Group Name" });
   }
@@ -125,7 +123,6 @@ const handleAddGroupMembers = async (req, res, next) => {
     const updatedMembers = await Chat.findByIdAndUpdate({ _id: chatId }, {
       $addToSet: { members: { $each: members } }
     }, { new: true }).populate(["groupAdmin", "members"]) // Add only unique members
-    console.log("updatedMembers", updatedMembers)
 
     // return res.status(201).json({ message: "members added successfully" })
     return res.status(200).json({
@@ -164,7 +161,6 @@ const handleRemoveGroupMember = async (req, res, next) => {
 
   // if going to remove admin ? , avoid to remove admin itself
   if (group.groupAdmin.toString() === userToRemove._id.toString()) {
-    console.log(group.groupAdmin.toString(), userToRemove._id.toString())
     return res.status(400).json({ message: "first assign admin to other group member / admin can't leave the group / admin can delete the group" })
   }
 
@@ -181,7 +177,6 @@ const handleRemoveGroupMember = async (req, res, next) => {
       { new: true } // Return the updated document
     ).populate(["groupAdmin", "members"])
 
-    console.log(updatedChat)
 
     /*...updatedChat._doc,
       members: updatedChat.members.filter((ele)=>ele._id.toString() !== req.user._id.toString()) */
@@ -206,7 +201,6 @@ const handleLeaveFromGroup = async (req, res, next) => {
 
   // check is admin want to leave the group
   if (group.groupAdmin.toString() === req.user._id.toString()) {
-    console.log(group.groupAdmin.toString(), req.user._id.toString())
     return res.status(400).json({ message: "first assign admin to other group member / admin can't leave the group / admin can delete the group" })
   }
 
@@ -215,7 +209,6 @@ const handleLeaveFromGroup = async (req, res, next) => {
     // now check if group length is less than 3 then delete that 
     if (group.members.length <= 3) {
       const response = await Chat.findByIdAndDelete(groupId)
-      console.log(response)
       return res.status(201).json({ message: `${req.user.name} leaved the group , group deleted because only 2 members are left` })
     } else {
       // If the member is found, remove it
@@ -224,7 +217,6 @@ const handleLeaveFromGroup = async (req, res, next) => {
         { $pull: { members: req.user._id } }, // Pull the member from the array
         { new: true } // Return the updated document
       );
-      console.log(updatedChat)
       return res.status(200).json({ message: `${req.user.name} leaved the group` })
     }
   } catch (error) {
@@ -239,7 +231,6 @@ const handleSendMessage = async (req, res, next) => {
   try {
     const { content, chatId ,attachments} = req.body;
     // const files = req.files || [];
-    console.log(req.body)
 
     // Check if more than 5 files are uploaded
     // if (files.length > 5) {
@@ -329,12 +320,10 @@ const handleGetChatDetails = async (req, res, next) => {
 
 //9.
 const handleRenameGroup = asyncHandler(async (req, res, next) => {
-  console.log(req.body)
   const { chatId, chatName } = req.body;
 
   // must be groupchat and admin is allowed
   const chat = await Chat.findById(chatId)
-  console.log(chat)
   if (!chat.isGroupChat) return next(new Error('group chat name can only be changed'))
   if (chat.groupAdmin.toString() !== req.user._id.toString()) return next(new Error('only admin can changed the group name'))
 
@@ -357,7 +346,6 @@ const handleRenameGroup = asyncHandler(async (req, res, next) => {
       members: updatedChat.members.filter((ele)=>ele._id.toString() !== req.user._id.toString())
     }
     res.json(response);
-    console.log(response)
   }
 });
 

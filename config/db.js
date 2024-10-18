@@ -1,9 +1,9 @@
 const mongoose = require("mongoose");
-const MONGODB_LOCAL_URL = process.env.MONGODB_LOCAL_URL
-// const MONGODB_URL = process.env.MONGODB_URL
+// const MONGODB_LOCAL_URL = process.env.MONGODB_LOCAL_URL
+const MONGODB_URL = process.env.MONGODB_URL
 // connection
-mongoose.connect(MONGODB_LOCAL_URL);
-// mongoose.connect(MONGODB_URL);
+// mongoose.connect(MONGODB_LOCAL_URL);
+mongoose.connect(MONGODB_URL);
 
 // setup listners
 const db = mongoose.connection;

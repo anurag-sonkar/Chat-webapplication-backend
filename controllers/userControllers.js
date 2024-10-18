@@ -76,13 +76,11 @@ const handleAvatarUpdate = asyncHandler(async (req, res, next) => {
     try {
         if (public_id != null) {
             const response = deleteCloudinaryImage(public_id)
-            console.log(response)
         }
 
         let uploadAvatar;
         if (req.file) {
             uploadAvatar = await uploadToCloudinary(req.file.buffer)
-            console.log("uploadAvatar", uploadAvatar)
 
         }
 
@@ -109,7 +107,6 @@ const handleAvatarUpdate = asyncHandler(async (req, res, next) => {
 
 const handleUserLogin = asyncHandler(async (req, res, next) => {
     const { email, password } = req.body
-    console.log(req.body)
 
     if (!email || !password) {
         return res.status(400).json({ message: "email and password required to login" });
@@ -117,7 +114,6 @@ const handleUserLogin = asyncHandler(async (req, res, next) => {
 
     try {
         const user = await User.findOne({ email }).select('+password')
-        console.log(user)
 
         if (user) {
             const isMatch = await bcrypt.compare(password, user.password)
@@ -161,7 +157,6 @@ const handleGetMyProfile = asyncHandler(async (req, res, next) => {
 
 const handleSearchQuery = asyncHandler(async (req, res) => {
     const search = req.query.search
-    console.log("search", search)
     const user = req.user
 
     const searchKeyword = { $or: [{ name: { $regex: search, $options: "i" } }, { email: { $regex: search, $options: "i" } }] }
@@ -171,7 +166,6 @@ const handleSearchQuery = asyncHandler(async (req, res) => {
         _id: { $ne: user._id }  // Combine both conditions in a single find query
     })
 
-    console.log("search res : ", response)
     res.status(200).json({ "response": response, message: "search successfull" })
 
 
@@ -201,7 +195,6 @@ const handleSendFriendRequest = async (req, res, next) => {
     // emit event send - new Request
     // Socket io for real time message show *
     const senderRequest = await Request.findById(response?._id).populate('sender');
-    console.log("senderRequest", senderRequest)
 
     const receiverSocketId = getReceiverSocketId(userId)
     if (receiverSocketId) {
