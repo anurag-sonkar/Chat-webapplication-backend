@@ -34,12 +34,6 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// {
-//   type: String,
-//       default:
-//   "https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg",
-//     }
-
 
 // hash pasword , middleware which runs before save operation is performed
 userSchema.pre("save", async function (next) {
